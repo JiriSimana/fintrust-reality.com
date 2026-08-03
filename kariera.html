@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kariéra — nábor realitních makléřů | FinTrust Reality</title>
+<meta name="description" content="Nábor realitních makléřů do FinTrust Reality (Plzeň & Praha). KPI na první kvartál domlouváme individuálně. Zázemí, systém, právní servis i marketing od prvního dne." />
+<meta name="theme-color" content="#122A25" />
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,400;1,9..144,500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body data-page="kariera">
+
+<div id="site-header"></div>
+
+<main>
+<section class="page-hero" id="top">
+  <div class="page-hero__inner">
+    <div class="page-hero__crumb"><a href="index.html" data-cursor>Domů</a><span>/</span> Kariéra</div>
+    <span class="eyebrow eyebrow--gold reveal-fade" style="margin-bottom:18px;display:inline-flex"><i></i>Nábor realitních makléřů</span>
+    <h1 class="page-hero__title" data-split-words>První kvartál <em>podle vás.</em></h1>
+    <p class="page-hero__lead reveal-fade">KPI na první kvartál domlouváme individuálně. Budujeme tým, ne tabulku. Hledáme makléře do Plzně i Prahy — zkušené i ty, kdo s realitami začínají.</p>
+    <div class="page-hero__actions reveal-fade">
+      <a href="#zajem" class="btn btn--gold" data-cursor data-magnetic>Ozvěte se</a>
+    </div>
+  </div>
+</section>
+
+<section class="block block--cream">
+  <div class="section-head"><span class="eyebrow reveal-fade"><i></i>Co u nás získáte</span>
+    <h2 class="section-title"><span data-split-words>Zázemí od prvního dne.</span></h2></div>
+  <div class="grid-svc">
+    <article class="svc-card reveal-card" data-cursor><span class="svc-card__num">01</span><h3>Cíle nastavíme společně</h3><p>Ne shora, ne převzatou tabulkou. Férově a podle reality trhu i vašich možností.</p></article>
+    <article class="svc-card reveal-card" data-cursor><span class="svc-card__num">02</span><h3>Systém &amp; marketing</h3><p>Realitní software, inzerce, fotograf a marketing. Vy prodáváte, my řešíme zbytek.</p></article>
+    <article class="svc-card reveal-card" data-cursor><span class="svc-card__num">03</span><h3>Právní servis</h3><p>Smlouvy a úschovy máte za zády. Bezpečně pro vás i pro klienta.</p></article>
+    <article class="svc-card reveal-card" data-cursor><span class="svc-card__num">04</span><h3>Finanční síla FinTrust</h3><p>Hypotéky a financování přímo v týmu — klientovi nabídnete výrazně víc.</p></article>
+    <article class="svc-card reveal-card" data-cursor><span class="svc-card__num">05</span><h3>Férové podmínky</h3><p>Transparentní provize a růst podle výsledků. Žádné skryté háčky.</p></article>
+    <article class="svc-card reveal-card" data-cursor><span class="svc-card__num">06</span><h3>Dvě města, jeden tým</h3><p>Plzeň i Praha, sdílené know-how a nabídky. Nejste na to sami.</p></article>
+  </div>
+</section>
+
+<!-- ZÁJEM FORM -->
+<section class="contact" id="zajem">
+  <div class="contact__grid">
+    <div class="contact__left">
+      <span class="eyebrow eyebrow--light reveal-fade"><i></i>Mám zájem</span>
+      <h2 class="contact__title"><span data-split-words>Pojďme si o tom promluvit.</span></h2>
+      <p class="contact__lead reveal-fade">Napište nám pár řádků o sobě a ozveme se. Nezávazně — klidně jen na kávu a otázky.</p>
+      <a href="mailto:kariera@fintg.cz" class="contact__mail" data-cursor data-magnetic>kariera@fintg.cz</a>
+    </div>
+    <form class="contact__form" id="contactForm" novalidate>
+      <div class="field"><input type="text" id="cname" name="name" required placeholder=" " /><label for="cname">Jméno a příjmení</label></div>
+      <div class="field field--half"><input type="email" id="cmail" name="email" required placeholder=" " /><label for="cmail">E-mail</label></div>
+      <div class="field field--half"><input type="tel" id="cphone" name="phone" placeholder=" " /><label for="cphone">Telefon</label></div>
+      <div class="field field--select">
+        <select id="ccity" name="city"><option>Plzeň</option><option>Praha</option><option>Plzeň i Praha</option></select>
+        <label for="ccity" class="label--static">Kde chcete působit</label>
+      </div>
+      <div class="field"><textarea id="cmsg" name="message" rows="3" placeholder=" "></textarea><label for="cmsg">Pár slov o vás</label></div>
+      <button type="submit" class="btn btn--gold btn--block" data-cursor data-magnetic>Odeslat</button>
+      <p class="contact__disclaimer">Odesláním souhlasíte se zpracováním údajů pro účely náboru. <span id="formMsg"></span></p>
+    </form>
+  </div>
+</section>
+</main>
+
+<div id="site-footer"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
+<script src="js/components.js"></script>
+<script src="js/listings.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
