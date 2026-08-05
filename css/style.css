@@ -245,7 +245,7 @@ section{position:relative}
 .menu__link i{font-size:.8rem;color:var(--gold);font-style:normal;font-weight:500}
 .menu__foot{display:flex;flex-direction:column;gap:16px}
 .menu__foot p{color:var(--white-45);font-size:.85rem}
-.menu__foot a{color:var(--gold)}
+.menu__foot p a{color:var(--gold)}
 
 /* =========================================================
    HERO
@@ -826,4 +826,65 @@ html.no-js .reveal-fade,html.no-js .reveal-card{opacity:1}
 @media (max-width:640px){
   .feed__toolbar{flex-direction:column;align-items:flex-start}
   .hero__figcard{left:16px;bottom:16px;padding:12px 16px;gap:14px}
+}
+
+/* =========================================================
+   RESPONSIVE REFINEMENTS — mobile & tablet polish
+   ========================================================= */
+html{overflow-x:hidden}
+/* never let a long Czech word or headline push the page wide */
+.section-title,.page-hero__title,.hero__title,.detail__title,.intro__statement,
+.valuation__title,.career__title,.cta-band h2,.contact__title,.subhero__title,
+.hero__lead,.page-hero__lead,.prop__title{overflow-wrap:break-word}
+.eyebrow{flex-wrap:wrap}
+
+/* ---- TABLET (≤1080) ---- */
+@media (max-width:1080px){
+  .grid-svc{grid-template-columns:repeat(2,1fr);max-width:none}
+  .page-hero{padding-top:140px}
+  .subhero{min-height:auto;padding-top:128px}
+  .detail{padding-top:130px}
+  .valuation{min-height:auto}
+}
+
+/* ---- SMALL TABLET / LARGE PHONE (≤760) ---- */
+@media (max-width:760px){
+  .page-hero{padding:118px var(--pad) clamp(40px,8vw,64px)}
+  .subhero{padding-top:110px}
+  .detail{padding:112px var(--pad) clamp(70px,12vw,120px)}
+  .hero__content{padding:112px var(--pad) 46px}
+  .process__steps{grid-template-columns:1fr;row-gap:0}
+  .step{padding:26px 0}
+  .team__grid{grid-template-columns:repeat(2,1fr)}
+  .detail__head{flex-direction:column;align-items:flex-start}
+  .detail__pricebox{text-align:left;align-items:flex-start;flex-direction:row;
+    justify-content:space-between;width:100%;align-items:center}
+  .feed__filters{gap:16px}
+}
+
+/* ---- PHONE (≤560) ---- */
+@media (max-width:560px){
+  .nav .nav__right .btn--gold.btn--sm{display:none}  /* CTA is in the burger menu */
+  .nav{gap:12px}
+  .nav__right{gap:10px}
+  .hero__cta,.page-hero__actions{flex-direction:column;align-items:stretch;width:100%}
+  .hero__cta .btn,.page-hero__actions .btn{width:100%}
+  .split-cta .hero__cta{align-items:center}
+  .eyebrow{letter-spacing:.14em;font-size:.66rem}
+  .hero__meta{gap:18px 26px}
+  .hero__figcard{gap:14px;padding:12px 15px}
+  .grid-svc{grid-template-columns:1fr;max-width:560px}
+  .process__steps{row-gap:0}
+  .footer__nav{grid-template-columns:1fr 1fr}
+  .detail__pricebox{flex-direction:column;align-items:flex-start}
+  .detail__pricebox .btn{width:100%;text-align:center}
+  .cta-band .btn,.valuation .btn{width:100%}
+  .section-head--split{gap:22px}
+}
+
+/* ---- VERY SMALL (≤380) ---- */
+@media (max-width:380px){
+  .team__grid{grid-template-columns:1fr}
+  .footer__nav{grid-template-columns:1fr}
+  .hero .hero__title{font-size:clamp(2.05rem,9vw,2.6rem)}
 }
