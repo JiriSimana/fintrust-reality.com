@@ -4,24 +4,24 @@
    ========================================================= */
 
 :root{
-  --green-950:#0C1F1A;
-  --green-900:#122A25;   /* brand dark (logo bg) */
-  --green-850:#153029;
-  --green-800:#1A3A32;
-  --green-700:#244A40;
-  --green-600:#2E5A4C;
+  --green-950:#071615;
+  --green-900:#0C2122;   /* brand dark (logo bg) */
+  --green-850:#113230;
+  --green-800:#163F3B;
+  --green-700:#204F48;
+  --green-600:#2A6053;
 
-  --gold:#C6A15E;
-  --gold-400:#D4B579;
-  --gold-300:#E4C88E;
-  --gold-line:rgba(198,161,94,.32);
+  --gold:#BE955D;
+  --gold-400:#CBA470;
+  --gold-300:#D9BB89;
+  --gold-line:rgba(190,149,93,.32);
 
   --cream:#F3EDE1;
   --cream-2:#EAE0CD;
   --cream-3:#E1D5BE;
   --sand:#F7F3EA;
 
-  --ink:#122A25;
+  --ink:#0C2122;
   --sage:#8B978C;
   --sage-2:#6E7A70;
 
@@ -204,23 +204,14 @@ section{position:relative}
 .nav.menu-open .nav__burger span:nth-child(1){transform:translateY(3.75px) rotate(45deg)}
 .nav.menu-open .nav__burger span:nth-child(2){transform:translateY(-3.75px) rotate(-45deg)}
 
-/* ---------- LOGO (inline) ---------- */
+/* ---------- LOGO (official wordmark + gold divider + sub-brand) ---------- */
 .logo{display:inline-flex;flex-direction:column;line-height:1;color:var(--white)}
-.logo__word{display:inline-flex;align-items:center;font-weight:700;font-size:1.5rem;
-  letter-spacing:-.01em;position:relative}
-.logo__word::after{content:"";position:absolute;left:0;right:0;bottom:-5px;height:1.5px;
-  background:var(--gold);opacity:.9}
-.logo__shield{display:inline-block;width:.78em;height:.94em;margin:0 .02em;transform:translateY(.06em)}
-.logo__shield svg{width:100%;height:100%;display:block}
-.logo__shield-bg{fill:var(--gold)}
-.logo__shield-arrow{stroke:var(--green-900)}
-.logo__sub{font-size:.62rem;letter-spacing:.5em;text-transform:uppercase;font-weight:500;
-  margin-top:10px;padding-left:.2em;color:inherit}
-.logo--footer .logo__word{font-size:2rem}
-
-/* logo on light bg */
-.on-light .logo,.logo--dark{color:var(--green-900)}
-.logo--dark .logo__shield-arrow{stroke:var(--cream)}
+.logo__wm{display:block;height:26px;width:auto}
+.logo__sub{margin-top:7px;padding-top:7px;border-top:1.6px solid var(--gold);
+  font-family:var(--ff-sans);font-weight:600;font-size:.6rem;letter-spacing:.46em;
+  text-transform:uppercase;text-align:center;color:inherit;padding-left:.46em}
+.logo--footer .logo__wm{height:34px}
+.logo--footer .logo__sub{font-size:.68rem;letter-spacing:.5em;padding-left:.5em;margin-top:9px;padding-top:9px}
 
 /* =========================================================
    MOBILE MENU

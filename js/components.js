@@ -8,9 +8,7 @@
 
   var LOGO = '' +
     '<span class="logo" data-logo>' +
-      '<span class="logo__word">FinTr<span class="logo__shield" aria-hidden="true">' +
-        '<svg viewBox="0 0 40 48" fill="none"><path class="logo__shield-bg" d="M4 9.5C4 6.5 6 5 9 5h22c3 0 5 1.5 5 4.5V27c0 7-8 12.5-16 16-8-3.5-16-9-16-16V9.5Z"/><path class="logo__shield-arrow" d="M10 30l7-7 4.5 4.5L31 16" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/><path class="logo__shield-arrow" d="M25 16h6v6" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
-      '</span>st</span>' +
+      '<img class="logo__wm" src="assets/fintrust-wordmark-inverted.svg" alt="FinTrust" width="356" height="83" />' +
       '<span class="logo__sub">Reality</span>' +
     '</span>';
 

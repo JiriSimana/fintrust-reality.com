@@ -36,7 +36,7 @@
     initMobileMenu();
     if (fine && !reduce) initCursor();
     if (hasGSAP) buildAnimations();
-    enhance(document);         // bind magnetics/cursor already in DOM
+    if (window.FTR && FTR.enhance) FTR.enhance(document); // bind magnetics/cursor already in DOM
     initForm();
   }
   if (document.readyState !== "loading") init();
