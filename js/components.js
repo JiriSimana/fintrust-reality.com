@@ -79,12 +79,17 @@
             '<div><h4>Kontakt</h4>' +
               '<a href="mailto:reality@fintg.cz" data-cursor>reality@fintg.cz</a>' +
               '<a href="tel:+420000000000" data-cursor>+420 000 000 000</a>' +
-              '<span>Plzeň · Praha</span>' +
+              '<span>alej Svobody 659/29, 323 00 Plzeň</span>' +
+              '<span>Praha — pobočka</span>' +
             "</div>" +
           "</nav>" +
         "</div>" +
+        '<div class="footer__legal">' +
+          'FinTrust Reality s.r.o. · IČO 29940150 · se sídlem alej Svobody 659/29, Severní Předměstí, 323 00 Plzeň · ' +
+          'zapsaná v obchodním rejstříku vedeném Krajským soudem v Plzni, oddíl C, vložka 48943.' +
+        "</div>" +
         '<div class="footer__bottom">' +
-          "<span>© " + y + " FinTrust Reality — součást skupiny FinTrust</span>" +
+          "<span>© " + y + " FinTrust Reality s.r.o. — součást skupiny FinTrust</span>" +
           '<span class="footer__made">Nabídka nemovitostí: realitní systém (XML/API)</span>' +
           '<a href="#top" class="footer__top-link" data-cursor data-magnetic>Nahoru ↑</a>' +
         "</div>" +

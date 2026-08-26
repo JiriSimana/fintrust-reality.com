@@ -586,7 +586,9 @@ section{position:relative}
 .footer__nav a,.footer__nav span{display:block;color:var(--white-45);font-size:.95rem;
   padding:6px 0;transition:color .3s}
 .footer__nav a:hover{color:var(--white)}
-.footer__bottom{max-width:var(--maxw);margin:0 auto;padding-top:28px;border-top:1px solid var(--white-08);
+.footer__legal{max-width:var(--maxw);margin:0 auto;color:var(--white-45);font-size:.78rem;
+  line-height:1.65;max-width:min(var(--maxw),80ch)}
+.footer__bottom{max-width:var(--maxw);margin:22px auto 0;padding-top:24px;border-top:1px solid var(--white-08);
   display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;
   color:var(--white-45);font-size:.78rem}
 .footer__top-link{color:var(--gold)}
