@@ -99,14 +99,11 @@
   function inject() {
     var active = document.body.getAttribute("data-page") || "";
 
-    // custom cursor + scroll progress (once)
-    if (!document.getElementById("cursor")) {
+    // scroll progress bar (once)
+    if (!document.getElementById("scrollProgress")) {
       var chrome = document.createElement("div");
       chrome.innerHTML =
-        '<div class="cursor" id="cursor" aria-hidden="true"><span class="cursor__dot"></span>' +
-        '<span class="cursor__ring"></span><span class="cursor__label"></span></div>' +
         '<div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>';
-      document.body.insertBefore(chrome.firstChild, document.body.firstChild);
       document.body.insertBefore(chrome.firstChild, document.body.firstChild);
     }
 

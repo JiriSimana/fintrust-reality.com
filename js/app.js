@@ -1,9 +1,11 @@
 /* =========================================================
    FinTrust Reality — interaction layer (multi-page)
-   Lenis smooth scroll · GSAP reveals · custom cursor · magnetics
+   Lenis smooth scroll · GSAP scroll reveals
    Degrades gracefully if any CDN lib is missing.
    Exposes window.FTR.enhance(root) so injected content
-   (property cards) gets cursor + reveal behaviour too.
+   (property cards) gets scroll-reveal behaviour too.
+   Note: no cursor-following effects (custom cursor / magnetic
+   buttons) — intentionally removed for a calm, static pointer.
    ========================================================= */
 (function () {
   "use strict";
@@ -12,14 +14,11 @@
   var hasST = hasGSAP && typeof window.ScrollTrigger !== "undefined";
   var hasLenis = typeof window.Lenis !== "undefined";
   var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  var fine = window.matchMedia("(pointer: fine)").matches;
 
   if (hasST) gsap.registerPlugin(ScrollTrigger);
   document.documentElement.classList.remove("no-js");
 
   window.FTR = window.FTR || {};
-
-  var cursorEl = null, cursorParts = null;
 
   function forceReveal(scope) {
     (scope || document).querySelectorAll(".reveal-fade,.reveal-card").forEach(function (el) {
@@ -34,9 +33,8 @@
     var lenis = initLenis();
     initNav(lenis);
     initMobileMenu();
-    if (fine && !reduce) initCursor();
     if (hasGSAP) buildAnimations();
-    if (window.FTR && FTR.enhance) FTR.enhance(document); // bind magnetics/cursor already in DOM
+    if (window.FTR && FTR.enhance) FTR.enhance(document); // reveal content already in DOM
     initForm();
   }
   if (document.readyState !== "loading") init();
@@ -121,56 +119,6 @@
     if (b) b.setAttribute("aria-expanded", "false");
   }
 
-  /* ---------- custom cursor ---------- */
-  function initCursor() {
-    cursorEl = document.getElementById("cursor");
-    if (!cursorEl) return;
-    document.body.classList.add("cursor-ready");
-    var label = cursorEl.querySelector(".cursor__label");
-    var dot = cursorEl.querySelector(".cursor__dot");
-    var ring = cursorEl.querySelector(".cursor__ring");
-    cursorParts = { label: label, dot: dot, ring: ring };
-    var mx = innerWidth / 2, my = innerHeight / 2, rx = mx, ry = my;
-    window.addEventListener("mousemove", function (e) {
-      mx = e.clientX; my = e.clientY;
-      dot.style.transform = "translate(" + mx + "px," + my + "px)";
-      cursorEl.classList.add("on");
-    });
-    (function loop() {
-      rx += (mx - rx) * 0.18; ry += (my - ry) * 0.18;
-      ring.style.transform = "translate(" + rx + "px," + ry + "px)";
-      label.style.transform = "translate(" + rx + "px," + ry + "px)";
-      requestAnimationFrame(loop);
-    })();
-    window.addEventListener("mouseleave", function () { cursorEl.classList.remove("on"); });
-  }
-  function bindCursor(scope) {
-    if (!cursorEl || !fine || reduce) return;
-    scope.querySelectorAll("[data-cursor]").forEach(function (el) {
-      if (el.__cur) return; el.__cur = true;
-      el.addEventListener("mouseenter", function () {
-        var l = el.getAttribute("data-cursor-label");
-        if (l) { cursorEl.classList.add("label"); cursorParts.label.textContent = l; }
-        else cursorEl.classList.add("hover");
-      });
-      el.addEventListener("mouseleave", function () { cursorEl.classList.remove("hover", "label"); });
-    });
-  }
-
-  /* ---------- magnetic ---------- */
-  function bindMagnetic(scope) {
-    if (!fine || reduce) return;
-    scope.querySelectorAll("[data-magnetic]").forEach(function (el) {
-      if (el.__mag) return; el.__mag = true;
-      var s = 0.35;
-      el.addEventListener("mousemove", function (e) {
-        var r = el.getBoundingClientRect();
-        el.style.transform = "translate(" + (e.clientX - (r.left + r.width / 2)) * s + "px," + (e.clientY - (r.top + r.height / 2)) * s + "px)";
-      });
-      el.addEventListener("mouseleave", function () { el.style.transform = "translate(0,0)"; });
-    });
-  }
-
   /* ---------- reveals for a scope (used for injected content) ---------- */
   function revealScope(scope) {
     var items = scope.querySelectorAll(".reveal-fade,.reveal-card");
@@ -185,11 +133,9 @@
     });
   }
 
-  // public: enhance freshly-injected DOM
+  // public: enhance freshly-injected DOM (scroll reveals only)
   window.FTR.enhance = function (root) {
     root = root || document;
-    bindCursor(root);
-    bindMagnetic(root);
     revealScope(root);
     if (hasST) ScrollTrigger.refresh();
   };
