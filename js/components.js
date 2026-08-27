@@ -17,7 +17,9 @@
     { key: "nemovitosti", href: "nemovitosti.html", label: "Nemovitosti" },
     { key: "sluzby",      href: "sluzby.html",       label: "Služby" },
     { key: "sprava",      href: "sprava-nemovitosti.html", label: "Správa &amp; pronájem" },
-    { key: "o-nas",       href: "o-nas.html",        label: "O nás" },
+    // DOČASNĚ SKRYTO — „O nás" (zatím neprezentujeme žádného makléře).
+    // Obnovení: odkomentovat řádek níže + smazat redirect blok v horní části o-nas.html.
+    // { key: "o-nas",       href: "o-nas.html",        label: "O nás" },
     { key: "kariera",     href: "kariera.html",      label: "Kariéra" },
     { key: "kontakt",     href: "kontakt.html",      label: "Kontakt" },
   ];
@@ -78,7 +80,8 @@
             "</div>" +
             '<div><h4>Kontakt</h4>' +
               '<a href="mailto:reality@fintg.cz" data-cursor>reality@fintg.cz</a>' +
-              '<a href="tel:+420000000000" data-cursor>+420 000 000 000</a>' +
+              '<a href="tel:+420606060098" data-cursor>+420 606 060 098</a>' +
+              '<span>Pepa Knopp</span>' +
               '<span>alej Svobody 659/29, 323 00 Plzeň</span>' +
               '<span>Praha — pobočka</span>' +
             "</div>" +
