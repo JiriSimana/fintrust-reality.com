@@ -1,5 +1,5 @@
 {
-  "_comment": "UKÁZKOVÁ DATA. V ostrém provozu se tento soubor nahradí importem z realitního systému (realitni-system.com / Poski REAL) přes XML feed nebo API (export.poskireal.cz/api/export/klient/). Struktura záměrně kopíruje typická pole realitního exportu.",
+  "_comment": "UKÁZKOVÁ DATA / FALLBACK. V ostrém provozu jde nabídka z Poski REAL OpenAPI v2 (JSON/HTTP) přes serverless proxy /api/nemovitosti (viz api/nemovitosti.js) — ten API klíč drží na serveru a mapuje odpověď na tuto strukturu. Tento soubor se použije, když API není nastavené nebo je nedostupné (např. lokální náhled). Postup napojení: NAPOJENI-POSKI-API.md. Pozn.: staré XML metody Poski končí koncem roku 2027.",
   "source": "realitni-system.com",
   "updated": "2026-08-03",
   "items": [

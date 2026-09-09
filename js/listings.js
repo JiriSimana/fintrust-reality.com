@@ -1,15 +1,19 @@
 /* =========================================================
    FinTrust Reality — property listings
-   Reads data/nemovitosti.json (a stand-in for the live
-   realitni-system.com XML/API import) and renders:
-     • featured cards on the homepage   (#featuredGrid)
-     • the full filterable grid          (#feedGrid)
-     • a single property detail          (#detailRoot)
+   Zdroj dat: nejprve /api/nemovitosti (serverless proxy pro
+   Poski REAL OpenAPI v2 — viz api/nemovitosti.js), a když
+   není dostupné (lokální náhled), spadne zpět na ukázkový
+   soubor data/nemovitosti.json. Obě varianty vrací stejný
+   tvar { items:[…] }, takže renderování je společné:
+     • featured karty na úvodu           (#featuredGrid)
+     • plná filtrovaná mřížka             (#feedGrid)
+     • detail jedné nemovitosti           (#detailRoot)
    ========================================================= */
 (function () {
   "use strict";
 
-  var DATA_URL = "data/nemovitosti.json";
+  var API_URL = "/api/nemovitosti";        // ostrý zdroj (Poski REAL API v2 přes proxy)
+  var MOCK_URL = "data/nemovitosti.json";  // fallback (lokální náhled / API nedostupné)
 
   // ---- line-art per property type (used until real photos arrive) ----
   var ART = {
@@ -46,10 +50,10 @@
       '<article class="prop reveal-card" data-city="' + esc(p.kraj) + '" data-typ="' + esc(p.typ) +
         '" data-nabidka="' + esc(p.nabidka) + '" data-cursor data-cursor-label="Detail">' +
         '<a class="prop__hit" href="nemovitost.html?id=' + encodeURIComponent(p.id) + '" aria-label="' + esc(p.nazev) + '">' +
-          '<div class="prop__media prop__media--gen">' +
+          '<div class="prop__media ' + (p.fotky && p.fotky.length ? "prop__media--photo" : "prop__media--gen") + '">' +
             badge(p) +
             '<span class="prop__city">' + esc(p.lokalita) + "</span>" +
-            (ART[p.art] || ART.apartment) +
+            media(p) +
           "</div>" +
           '<div class="prop__info">' +
             '<h3 class="prop__title">' + esc(p.nazev) + "</h3>" +
@@ -67,11 +71,24 @@
     if (window.FTR && typeof window.FTR.enhance === "function") window.FTR.enhance(node);
   }
 
-  function load() {
-    return fetch(DATA_URL, { cache: "no-cache" }).then(function (r) {
+  function fetchJSON(url) {
+    return fetch(url, { cache: "no-cache" }).then(function (r) {
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
     });
+  }
+  function load() {
+    // ostrý zdroj přes proxy; když selže (404 na lokálu, výpadek), použij mock
+    return fetchJSON(API_URL).catch(function () { return fetchJSON(MOCK_URL); });
+  }
+
+  // reálná fotka (z API), jinak generativní line-art
+  function media(p, big) {
+    if (p.fotky && p.fotky.length) {
+      return '<img class="prop__photo" src="' + esc(p.fotky[0]) + '" alt="' + esc(p.nazev) +
+        '" loading="lazy" decoding="async" />';
+    }
+    return ART[p.art] || ART.apartment;
   }
 
   // ---------- homepage: featured ----------
@@ -156,8 +173,10 @@
         "</div>" +
       "</div>" +
       '<div class="detail__gallery reveal-fade">' +
-        '<div class="detail__stage prop__media--gen">' + (ART[p.art] || ART.apartment) +
-          '<span class="detail__ph">Fotografie doplní makléř</span></div>' +
+        '<div class="detail__stage ' + (p.fotky && p.fotky.length ? "prop__media--photo" : "prop__media--gen") + '">' +
+          media(p, true) +
+          (p.fotky && p.fotky.length ? "" : '<span class="detail__ph">Fotografie doplní makléř</span>') +
+        "</div>" +
       "</div>" +
       '<div class="detail__body">' +
         '<div class="detail__desc reveal-fade">' +

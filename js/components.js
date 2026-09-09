@@ -81,7 +81,7 @@
             '<div><h4>Kontakt</h4>' +
               '<a href="mailto:reality@fintg.cz" data-cursor>reality@fintg.cz</a>' +
               '<a href="tel:+420606060098" data-cursor>+420 606 060 098</a>' +
-              '<span>Pepa Knopp</span>' +
+              '<span>Josef Knopp, MBA</span>' +
               '<span>alej Svobody 659/29, 323 00 Plzeň</span>' +
               '<span>Praha — pobočka</span>' +
             "</div>" +
