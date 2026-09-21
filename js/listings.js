@@ -50,10 +50,11 @@
       '<article class="prop reveal-card" data-city="' + esc(p.kraj) + '" data-typ="' + esc(p.typ) +
         '" data-nabidka="' + esc(p.nabidka) + '" data-cursor data-cursor-label="Detail">' +
         '<a class="prop__hit" href="nemovitost.html?id=' + encodeURIComponent(p.id) + '" aria-label="' + esc(p.nazev) + '">' +
-          '<div class="prop__media ' + (p.fotky && p.fotky.length ? "prop__media--photo" : "prop__media--gen") + '">' +
+          '<div class="prop__media ' + (p.foto ? "prop__media--photo" : "prop__media--gen") + '">' +
             badge(p) +
+            countBadge(p) +
             '<span class="prop__city">' + esc(p.lokalita) + "</span>" +
-            media(p) +
+            cardMedia(p) +
           "</div>" +
           '<div class="prop__info">' +
             '<h3 class="prop__title">' + esc(p.nazev) + "</h3>" +
@@ -82,13 +83,20 @@
     return fetchJSON(API_URL).catch(function () { return fetchJSON(MOCK_URL); });
   }
 
-  // reálná fotka (z API), jinak generativní line-art
-  function media(p, big) {
-    if (p.fotky && p.fotky.length) {
-      return '<img class="prop__photo" src="' + esc(p.fotky[0]) + '" alt="' + esc(p.nazev) +
+  // hlavní fotka karty (z API přes /api/foto), jinak generativní line-art
+  function cardMedia(p) {
+    if (p.foto) {
+      return '<img class="prop__photo" src="' + esc(p.foto) + '" alt="' + esc(p.nazev) +
         '" loading="lazy" decoding="async" />';
     }
     return ART[p.art] || ART.apartment;
+  }
+  function countBadge(p) {
+    return p.fotoCount > 1
+      ? '<span class="prop__count" aria-label="' + p.fotoCount + ' fotografií">' +
+          '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M9 3 7.2 5H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.2L15 3H9Zm3 14a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Z"/></svg>' +
+          p.fotoCount + "</span>"
+      : "";
   }
 
   // ---------- homepage: featured ----------
@@ -188,11 +196,38 @@
     return '<dl class="detail__params">' + rows.join("") + "</dl>";
   }
 
-  function renderDetail(feed) {
+  function gallery(p) {
+    var f = p.fotky && p.fotky.length ? p.fotky : null;
+    if (!f) {
+      return '<div class="detail__stage prop__media--gen">' + (ART[p.art] || ART.apartment) +
+        '<span class="detail__ph">Fotografie připravujeme</span></div>';
+    }
+    var thumbs = f.map(function (ph, i) {
+      return '<button type="button" class="gal-thumb' + (i === 0 ? " is-active" : "") + '" data-full="' + esc(ph.f) +
+        '" aria-label="Fotografie ' + (i + 1) + '"><img src="' + esc(ph.t) + '" loading="lazy" decoding="async" alt="" /></button>';
+    }).join("");
+    return '' +
+      '<div class="detail__stage prop__media--photo">' +
+        '<img id="galMain" class="prop__photo" src="' + esc(f[0].f) + '" alt="' + esc(p.nazev) + '" decoding="async" />' +
+      "</div>" +
+      (f.length > 1 ? '<div class="gal-thumbs">' + thumbs + "</div>" : "");
+  }
+  function wireGallery(root) {
+    var main = root.querySelector("#galMain");
+    if (!main) return;
+    root.querySelectorAll(".gal-thumb").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var full = btn.getAttribute("data-full");
+        if (full) main.src = full;
+        root.querySelectorAll(".gal-thumb").forEach(function (b) { b.classList.remove("is-active"); });
+        btn.classList.add("is-active");
+      });
+    });
+  }
+
+  function renderDetail(p) {
     var root = document.getElementById("detailRoot");
-    if (!root) return;
-    var id = new URLSearchParams(location.search).get("id");
-    var p = feed.items.filter(function (x) { return x.id === id; })[0] || feed.items[0];
+    if (!root || !p) return;
     document.title = p.nazev + " — FinTrust Reality";
 
     root.innerHTML = '' +
@@ -208,12 +243,7 @@
           '<a href="kontakt.html" class="btn btn--gold btn--sm" data-cursor data-magnetic>Mám zájem</a>' +
         "</div>" +
       "</div>" +
-      '<div class="detail__gallery reveal-fade">' +
-        '<div class="detail__stage ' + (p.fotky && p.fotky.length ? "prop__media--photo" : "prop__media--gen") + '">' +
-          media(p, true) +
-          (p.fotky && p.fotky.length ? "" : '<span class="detail__ph">Fotografie doplní makléř</span>') +
-        "</div>" +
-      "</div>" +
+      '<div class="detail__gallery reveal-fade">' + gallery(p) + "</div>" +
       '<div class="detail__body">' +
         '<div class="detail__desc reveal-fade">' +
           "<h2>Popis nemovitosti</h2><p>" + esc(p.popis) + "</p>" +
@@ -225,6 +255,7 @@
         "</aside>" +
       "</div>";
     enhance(root);
+    wireGallery(root);
   }
 
   function fail(err) {
@@ -235,11 +266,32 @@
     console.warn("listings load failed:", err);
   }
 
-  if (document.getElementById("featuredGrid") || document.getElementById("feedGrid") || document.getElementById("detailRoot")) {
+  var hasList = document.getElementById("featuredGrid") || document.getElementById("feedGrid");
+  var hasDetail = document.getElementById("detailRoot");
+
+  if (hasList) {
     load().then(function (feed) {
       renderFeatured(feed);
       renderFeed(feed);
-      renderDetail(feed);
     }).catch(fail);
+  }
+
+  if (hasDetail) {
+    // detail načítá JEDEN inzerát se všemi fotkami (režim ?id=)
+    var id = new URLSearchParams(location.search).get("id") || "";
+    fetchJSON(API_URL + "?id=" + encodeURIComponent(id))
+      .then(function (feed) {
+        var p = (feed.items || [])[0];
+        if (!p) throw new Error("not found");
+        renderDetail(p);
+      })
+      .catch(function () {
+        // fallback: mock/list (lokální náhled nebo výpadek) → line-art
+        load().then(function (f) {
+          var items = f.items || [];
+          var p = items.filter(function (x) { return String(x.id) === id; })[0] || items[0];
+          if (p) renderDetail(p); else fail("empty");
+        }).catch(fail);
+      });
   }
 })();

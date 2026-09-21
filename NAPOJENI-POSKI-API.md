@@ -49,9 +49,15 @@ curl -s "https://www.fintrust-reality.cz/api/nemovitosti" | head -c 200
 **3) Vizuálně:** otevři `https://www.fintrust-reality.cz/nemovitosti` — reálné nabídky,
 filtr „Lokalita" a „Typ" se samy poskládají z dat. Detail: klik na kartu.
 
+## Fotky
+- Fotky se z API musí vyžádat parametrem **`fields=photos`** (jinak je výpis neobsahuje) — proxy to dělá.
+- Samotné obrázky jsou **za autorizací** (`/listings/{id}/photos/{photoId}/{size}`, `size` = `thumbnail|medium|full`),
+  takže je servíruje druhá funkce **`/api/foto`** (drží klíč, dlouhá cache). V HTML je `<img src="/api/foto?l=…&p=…&s=…">`.
+- **Karta** = hlavní fotka (`medium`) + počet fotek; **detail** = galerie (hlavní `full` + náhledy `thumbnail`).
+- Bere jen fotky s `isPublishedOnWeb`. Když nabídka nemá fotky → úsporná line-art grafika.
+- Vše automaticky: nová nabídka/fotka v Poski se propíše sama (cache proxy ~5 min).
+
 ## Poznámky
-- **Fotky:** jakmile budou u nabídek nahrané a `isPublishedOnWeb`, zobrazí se z `publicUrl`
-  automaticky (na kartách i v detailu); do té doby úsporná line-art grafika.
 - **Rozsah nabídek:** proxy vrací všechny `active` nabídky účtu (aktuálně celá ČR + Rakousko).
   Když je chceš omezit jen na některé kraje, řekni — přidá se filtr na straně proxy.
 - **Lokální náhled** (`python3 -m http.server`) serverless funkci nespustí → načte se
