@@ -193,6 +193,9 @@ module.exports = async function (req, res) {
   var key = process.env.POSKI_API_KEY;
   var status = process.env.POSKI_STATUS || "active";
 
+  // odolnost vůči časté chybě: v ENV omylem zůstane "Bearer …" nebo mezera/nový řádek
+  if (key) key = key.trim().replace(/^Bearer\s+/i, "").trim();
+
   if (!key) {
     res.setHeader("Cache-Control", "s-maxage=60");
     res.status(200).json(Object.assign({}, MOCK, {
