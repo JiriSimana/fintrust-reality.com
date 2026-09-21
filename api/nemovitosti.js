@@ -1,48 +1,35 @@
 /* =========================================================
    FinTrust Reality — /api/nemovitosti  (Vercel serverless)
    Proxy pro Poski REAL OpenAPI v2 (JSON přes HTTP).
+   Endpoint: GET {base}/listings/?filter[status][eq]=active
+             (Bearer auth, stránkování page/perPage, vrací {items,pagination})
 
    PROČ proxy a ne přímé volání z prohlížeče:
-     • API vyžaduje autentizaci (API klíč) — ten NESMÍ být ve
-       frontend kódu. Drží se v Environment Variables na Vercelu.
-     • Vyhne se CORS omezením (voláme ze serveru, ne z prohlížeče).
+     • API vyžaduje Bearer klíč — ten NESMÍ být ve frontend kódu.
+       Drží se v Environment Variables na Vercelu (šifrované, server-side).
+     • Vyhne se CORS (voláme ze serveru).
 
-   Co dělá:
-     1) načte nabídky z Poski REAL API v2,
-     2) namapuje je na interní model, který renderuje js/listings.js,
-     3) vrátí { source, updated, configured, count, items:[…] } jako JSON.
+   ====== CO NASTAVIT NA VERCELU (Settings → Environment Variables) ======
+     POSKI_API_KEY   – (POVINNÉ) Bearer klíč k API v2, tvar prat_…
+     POSKI_API_BASE  – (volitelné) základ URL; default níže
+     POSKI_STATUS    – (volitelné) stav nabídek; default "active"
+       (možné: incomplete | active | activeUnderContract | pending | closed | withdrawn)
 
-   Dokud nejsou vyplněné ENV proměnné (nebo když API selže), vrací
-   ukázková data z data/nemovitosti.json — web tedy funguje vždy.
-
-   ====== CO DOPLNIT PRO OSTRÝ PROVOZ ======
-   Vercel → Project → Settings → Environment Variables:
-     POSKI_API_BASE   – základ URL API v2 z dokumentace Poski REAL,
-                        např. https://<vas-ucet>.poskireal.cz/api/v2
-     POSKI_API_KEY    – přístupový klíč / token
-     POSKI_AUTH       – (volitelné) "bearer" (výchozí) | "header" | "query"
-     POSKI_AUTH_NAME  – (volitelné) název hlavičky/parametru pro klíč,
-                        když POSKI_AUTH="header"/"query"
-                        (např. "X-Api-Key" nebo "apikey")
-     POSKI_LIST_PATH  – (volitelné) cesta k výpisu nabídek, výchozí "/offers"
-
-   Přesné cesty, autentizaci a NÁZVY POLÍ potvrď podle dokumentace
-   Poski REAL API v2. Jediná dvě místa, kde se to ladí, jsou funkce
-   fetchOffers() (endpoint + auth) a mapOffer() (názvy polí).
+   Bez POSKI_API_KEY (nebo při chybě API) vrací ukázková data
+   z data/nemovitosti.json — web tedy funguje vždy.
+   Návod a testy: NAPOJENI-POSKI-API.md
    ========================================================= */
 "use strict";
 
 var MOCK = require("../data/nemovitosti.json");
 
+var DEFAULT_BASE = "https://okrealestate.poskireal.cz/api/v2";
+var PER_PAGE = 100;   // stránka dotazu na API
+var MAX_ITEMS = 300;  // pojistka proti obřím payloadům
+
 /* ---------- pomocné ---------- */
-function pick(o) {
-  for (var i = 1; i < arguments.length; i++) {
-    var k = arguments[i];
-    if (o && o[k] != null && o[k] !== "") return o[k];
-  }
-  return undefined;
-}
 function num(v) {
+  if (typeof v === "number") return isFinite(v) ? v : 0;
   var n = parseFloat(String(v == null ? "" : v).replace(/\s/g, "").replace(/[^\d.,-]/g, "").replace(",", "."));
   return isFinite(n) ? n : 0;
 }
@@ -50,126 +37,173 @@ function czk(n) {
   try { return new Intl.NumberFormat("cs-CZ").format(Math.round(n)); }
   catch (e) { return String(Math.round(n)); }
 }
-function mapTyp(raw) {
-  var s = String(raw == null ? "" : raw).toLowerCase();
-  if (/pozem|land|plot|parcel/.test(s)) return "pozemek";
-  if (/d[uů]m|rodinn|house|vila|chat|chalup|usedlost/.test(s)) return "dum";
-  if (/komer|commerc|office|kancel|sklad|business|nebytov/.test(s)) return "komercni";
-  return "byt"; // výchozí
+// lokalizovaný text { cs: "…" } → string
+function loc(v) {
+  if (v == null) return "";
+  if (typeof v === "object") return String(v.cs || v.en || v.value || v.label || "");
+  return String(v);
+}
+// enum { value, label } → label
+function enumLabel(v) {
+  if (v == null) return "";
+  if (typeof v === "object") return String(v.label != null ? v.label : (v.value != null ? v.value : ""));
+  return String(v);
+}
+// money { value, currency } → number
+function money(v) { return v && typeof v === "object" ? num(v.value) : num(v); }
+
+function mapTyp(pt) {
+  var s = String((pt && pt.label) || "").toLowerCase();
+  if (/pozem/.test(s)) return "pozemek";
+  if (/domy|d[uů]m|chalup|vila|chat|usedlost/.test(s)) return "dum";
+  if (/byty|byt/.test(s)) return "byt";
+  if (/komer/.test(s)) return "komercni";
+  return "komercni"; // Ostatní/Garáž apod. → nejbližší kbelík ve filtru
 }
 function artFor(typ) { return typ === "dum" ? "house" : typ === "pozemek" ? "land" : "apartment"; }
-function mapNabidka(raw) {
-  var s = String(raw == null ? "" : raw).toLowerCase();
-  if (/pron|rent|n[aá]jem|lease/.test(s)) return "pronajem";
-  return "prodej";
-}
+
 function regionSlug(raw) {
   var s = String(raw == null ? "" : raw).toLowerCase();
   if (/praha|prague/.test(s)) return "praha";
   if (/plze/.test(s)) return "plzen";
-  // ostatní kraje → zjednodušený slug (filtry na nemovitosti.html případně rozšiř)
-  var slug = s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  var slug = s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/kraj/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   return slug || "jine";
 }
-function mapPhotos(o) {
-  var arr = pick(o, "photos", "images", "fotky", "media", "pictures") || [];
+
+function photosOf(it) {
+  var arr = it.photos || [];
   if (!Array.isArray(arr)) return [];
-  return arr.map(function (ph) {
-    if (typeof ph === "string") return ph;
-    return pick(ph, "url", "src", "href", "link", "large", "medium", "original");
-  }).filter(Boolean);
+  return arr
+    .filter(function (ph) { return ph && ph.isPublishedOnWeb !== false && (ph.publicUrl || ph.publicThumbnailUrl); })
+    .sort(function (a, b) {
+      return (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0) || (a.sortOrder || 0) - (b.sortOrder || 0);
+    })
+    .map(function (ph) { return ph.publicUrl || ph.publicThumbnailUrl; });
 }
-function mapParams(o) {
-  var p = pick(o, "parameters", "parametry", "attributes", "params");
-  if (p && typeof p === "object" && !Array.isArray(p)) return p;
-  // pole { name/label, value } → objekt
-  if (Array.isArray(p)) {
-    var out = {};
-    p.forEach(function (it) {
-      var k = pick(it, "name", "label", "key", "nazev");
-      var v = pick(it, "value", "hodnota", "val");
-      if (k != null && v != null) out[String(k)] = String(v);
-    });
-    return out;
+
+function paramsOf(it, typ, disp) {
+  var P = {};
+  function add(k, v) {
+    if (v == null || v === "") return;
+    if (typeof v === "number" && v === 0) return;
+    P[k] = String(v);
   }
-  return {};
+  if (disp && typ !== "pozemek") add("Dispozice", disp);
+  if (num(it.livingArea)) add("Užitná plocha", num(it.livingArea) + " m²");
+  if (num(it.lotSizeArea)) add("Plocha pozemku", num(it.lotSizeArea) + " m²");
+  if (num(it.gardenArea)) add("Zahrada", num(it.gardenArea) + " m²");
+  if (it.roomsTotal) add("Počet místností", it.roomsTotal);
+  if (it.floorNumber != null && it.floorNumber !== 0) add("Podlaží", it.floorNumber);
+  if (it.hasElevator) add("Výtah", "Ano");
+  if (it.garageSpaces) add("Garáž", it.garageSpaces + "×");
+  if (num(it.balconyArea)) add("Balkon", num(it.balconyArea) + " m²");
+  if (num(it.terraceArea)) add("Terasa", num(it.terraceArea) + " m²");
+  if (num(it.loggiaArea)) add("Lodžie", num(it.loggiaArea) + " m²");
+  if (it.constructionYear) add("Rok stavby", it.constructionYear);
+  add("Vlastnictví", enumLabel(it.propertyOwnership));
+  add("Konstrukce", enumLabel(it.constructionMaterial));
+  return P;
 }
 
 /* ---------- mapování jedné nabídky na interní model ---------- */
-function mapOffer(o) {
-  if (!o || typeof o !== "object") return null;
-  var typ = mapTyp(pick(o, "category", "type", "propertyType", "typ", "druh", "kind"));
-  var nabidka = mapNabidka(pick(o, "transaction", "dealType", "contractType", "offerType", "nabidka"));
-  var cena = num(pick(o, "price", "priceValue", "cena", "cenaValue", "amount"));
-  var mesto = String(pick(o, "city", "town", "mesto") || "");
-  var cast = String(pick(o, "district", "cityPart", "locality", "cast", "quarter") || "");
-  var lokalita = [mesto, cast].filter(Boolean).join(" — ") || String(pick(o, "address", "adresa") || mesto);
+function mapOffer(it) {
+  if (!it || typeof it !== "object") return null;
+  var typ = mapTyp(it.propertyType);
+
+  // dispozice: unitLayout.label, jinak z labelu typu ("Byty - 3 + kk" → "3+kk")
+  var disp = enumLabel(it.unitLayout);
+  if (!disp && typ === "byt") {
+    var parts = String((it.propertyType && it.propertyType.label) || "").split(" - ");
+    if (parts[1]) disp = parts[1];
+  }
+  if (disp) disp = disp.replace(/\s*\+\s*/g, "+").trim();
+  if (!disp && typ === "pozemek") disp = "pozemek";
+
+  var agr = (it.listingAgreement && it.listingAgreement.label) || "";
+  var nabidka = (it.leaseAmountFrequency || /pron[aá]j|n[aá]jem/i.test(agr)) ? "pronajem" : "prodej";
+
+  var plocha = num(it.livingArea) || num(it.floorArea) || num(it.totalArea) || num(it.lotSizeArea) || num(it.gardenArea) || 0;
+
+  var cena = money(it.listPrice);
+  var cur = (it.listPrice && it.listPrice.currency) || "CZK";
+  var jednotka = cur === "CZK" ? "Kč" : cur;
+  var cenaText = cena > 0 ? (czk(cena) + " " + jednotka + (nabidka === "pronajem" ? "/měs" : "")) : "Cena na vyžádání";
+
+  var a = it.address || {};
+  var mesto = a.city || "";
+  var cast = a.cityPart || a.district || "";
+  if (cast && cast === mesto) cast = ""; // nedupluj "Roztoky — Roztoky"
+  var lokalita = [mesto, cast].filter(Boolean).join(" — ") || a.unparsedAddress || mesto || "Česká republika";
+
+  var nazev = loc(it.publicHeadline);
+  if (!nazev) nazev = (enumLabel(it.propertyType) || "Nemovitost") + (lokalita ? " — " + lokalita : "");
+
+  var fotky = photosOf(it);
+
   return {
-    id: String(pick(o, "externalId", "external_id", "id", "code", "kod", "referenceNumber", "zakazka") || ""),
+    id: String(it.externalId || it.id || ""),
     typ: typ,
     nabidka: nabidka,
-    nazev: String(pick(o, "title", "name", "nazev", "heading") || "Nemovitost"),
-    dispozice: String(pick(o, "layout", "disposition", "dispozice", "rooms") || (typ === "pozemek" ? "pozemek" : "")),
-    plocha: num(pick(o, "usableArea", "area", "floorArea", "landArea", "plocha", "vymera")),
+    nazev: nazev,
+    dispozice: disp || "",
+    plocha: plocha,
     cena: cena,
-    cenaText: cena > 0 ? (czk(cena) + " Kč" + (nabidka === "pronajem" ? "/měs" : "")) : "Cena na vyžádání",
+    cenaText: cenaText,
     mesto: mesto,
     lokalita: lokalita,
-    kraj: regionSlug(pick(o, "region", "kraj", "county") || mesto),
-    stav: String(pick(o, "condition", "state", "stav") || ""),
-    penb: String(pick(o, "energyClass", "energyRating", "penb", "peneb") || ""),
-    popis: String(pick(o, "description", "descriptionCs", "text", "popis") || ""),
-    parametry: mapParams(o),
-    fotky: mapPhotos(o),
+    kraj: regionSlug(a.region || mesto),
+    krajLabel: String(a.region || mesto || ""),
+    stav: enumLabel(it.propertyCondition),
+    penb: enumLabel(it.energyPerformanceRating),
+    popis: loc(it.publicRemarks),
+    parametry: paramsOf(it, typ, disp),
+    fotky: fotky,
     art: artFor(typ),
-    featured: !!(pick(o, "featured", "top", "exclusive", "highlighted", "zvyraznene"))
+    featured: false
   };
 }
 
-/* ---------- volání Poski REAL API v2 ---------- */
-async function fetchOffers(base, key) {
-  var authMode = (process.env.POSKI_AUTH || "bearer").toLowerCase();
-  var authName = process.env.POSKI_AUTH_NAME || (authMode === "query" ? "apikey" : "X-Api-Key");
-  var listPath = process.env.POSKI_LIST_PATH || "/offers";
-  var url = base.replace(/\/+$/, "") + "/" + listPath.replace(/^\/+/, "");
-
-  var headers = { "Accept": "application/json" };
-  if (authMode === "bearer") headers["Authorization"] = "Bearer " + key;
-  else if (authMode === "header") headers[authName] = key;
-  else if (authMode === "query") url += (url.indexOf("?") > -1 ? "&" : "?") + encodeURIComponent(authName) + "=" + encodeURIComponent(key);
-
-  var ctrl = new AbortController();
-  var t = setTimeout(function () { ctrl.abort(); }, 10000);
-  var r;
-  try {
-    r = await fetch(url, { headers: headers, signal: ctrl.signal });
-  } finally {
-    clearTimeout(t);
+/* ---------- volání Poski REAL API v2 (se stránkováním) ---------- */
+async function fetchAllListings(base, key, status) {
+  var out = [];
+  var page = 1;
+  var headers = { "Accept": "application/json", "Authorization": "Bearer " + key };
+  while (out.length < MAX_ITEMS) {
+    var url = base.replace(/\/+$/, "") + "/listings/?filter%5Bstatus%5D%5Beq%5D=" +
+      encodeURIComponent(status) + "&page=" + page + "&perPage=" + PER_PAGE;
+    var ctrl = new AbortController();
+    var t = setTimeout(function () { ctrl.abort(); }, 12000);
+    var r;
+    try { r = await fetch(url, { headers: headers, signal: ctrl.signal }); }
+    finally { clearTimeout(t); }
+    if (!r.ok) throw new Error("Poski API HTTP " + r.status + " (page " + page + ")");
+    var j = await r.json();
+    var items = (j && j.items) || [];
+    out = out.concat(items);
+    var pg = j && j.pagination;
+    if (!pg || !pg.hasNextPage) break;
+    page++;
   }
-  if (!r.ok) throw new Error("Poski API HTTP " + r.status);
-  var j = await r.json();
-  // výpis může být pole, nebo obalený v data/items/offers/results/records
-  var list = Array.isArray(j) ? j : (j.items || j.data || j.offers || j.results || j.records || []);
-  return Array.isArray(list) ? list : [];
+  return out;
 }
 
 /* ---------- handler ---------- */
 module.exports = async function (req, res) {
-  var base = process.env.POSKI_API_BASE;
+  var base = process.env.POSKI_API_BASE || DEFAULT_BASE;
   var key = process.env.POSKI_API_KEY;
+  var status = process.env.POSKI_STATUS || "active";
 
-  // API zatím nenastaveno → ukázková data, ať web funguje
-  if (!base || !key) {
+  if (!key) {
     res.setHeader("Cache-Control", "s-maxage=60");
     res.status(200).json(Object.assign({}, MOCK, {
-      source: "mock (API not configured)",
+      source: "mock (POSKI_API_KEY not set)",
       configured: false
     }));
     return;
   }
 
   try {
-    var raw = await fetchOffers(base, key);
+    var raw = await fetchAllListings(base, key, status);
     var items = raw.map(mapOffer).filter(function (x) { return x && x.id; });
     res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
     res.status(200).json({
@@ -180,7 +214,6 @@ module.exports = async function (req, res) {
       items: items
     });
   } catch (e) {
-    // fail-safe → ukázková data, web nikdy nespadne
     res.setHeader("Cache-Control", "s-maxage=30");
     res.status(200).json(Object.assign({}, MOCK, {
       source: "mock (API error fallback)",

@@ -1,4 +1,10 @@
-.DS_Store
-node_modules/
-*.log
+# secrets / local env
+.env
+.env.*
 .vercel
+
+# os / editor
+.DS_Store
+
+# node (kdyby přibyl build)
+node_modules

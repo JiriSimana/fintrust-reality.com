@@ -95,9 +95,44 @@
   function renderFeatured(feed) {
     var grid = document.getElementById("featuredGrid");
     if (!grid) return;
-    var items = feed.items.filter(function (p) { return p.featured; }).slice(0, 3);
+    var items = feed.items.filter(function (p) { return p.featured; });
+    if (!items.length) items = feed.items; // API featured nedodává → vezmi první nabídky
+    items = items.slice(0, 3);
     grid.innerHTML = items.map(card).join("");
     enhance(grid);
+  }
+
+  // rebuild a filter group's chips from actual data (so kraj/typ always match feed)
+  var KRAJ_LABEL = { praha: "Praha", plzen: "Plzeň" };
+  var TYP_ORDER = ["byt", "dum", "pozemek", "komercni"];
+  function prettyKraj(p) {
+    return p.krajLabel || KRAJ_LABEL[p.kraj] || (p.kraj ? p.kraj.charAt(0).toUpperCase() + p.kraj.slice(1) : "");
+  }
+  function rebuildGroup(key, pairs) {
+    var group = document.querySelector('[data-filtergroup="' + key + '"]');
+    if (!group) return;
+    var b = group.querySelector("b");
+    var chips = '<button class="chip is-active" data-value="all">Vše</button>' +
+      pairs.map(function (p) {
+        return '<button class="chip" data-value="' + esc(p.value) + '">' + esc(p.label) + "</button>";
+      }).join("");
+    group.innerHTML = (b ? b.outerHTML : "") + chips;
+  }
+  function buildFilters(feed) {
+    // kraje — jen ty, co jsou v datech
+    var seenK = {}, kraje = [];
+    feed.items.forEach(function (p) {
+      if (p.kraj && !seenK[p.kraj]) { seenK[p.kraj] = 1; kraje.push({ value: p.kraj, label: prettyKraj(p) }); }
+    });
+    kraje.sort(function (a, b) { return a.label.localeCompare(b.label, "cs"); });
+    if (kraje.length > 1) rebuildGroup("kraj", kraje);
+    // typy — ve fixním pořadí, jen přítomné v datech
+    var TYP_PLURAL = { byt: "Byty", dum: "Domy", pozemek: "Pozemky", komercni: "Komerční" };
+    var seenT = {};
+    feed.items.forEach(function (p) { if (p.typ) seenT[p.typ] = 1; });
+    var typy = TYP_ORDER.filter(function (t) { return seenT[t]; })
+      .map(function (t) { return { value: t, label: TYP_PLURAL[t] || t }; });
+    if (typy.length > 1) rebuildGroup("typ", typy);
   }
 
   // ---------- listings page: full grid + filters ----------
@@ -107,6 +142,7 @@
     var countEl = document.getElementById("feedCount");
     var state = { kraj: "all", nabidka: "all", typ: "all" };
 
+    buildFilters(feed);
     grid.innerHTML = feed.items.map(card).join("");
     enhance(grid);
     apply();

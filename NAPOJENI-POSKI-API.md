@@ -1,69 +1,60 @@
 # Napojení nabídky na Poski REAL OpenAPI v2
 
-Web bere nabídku nemovitostí z **Poski REAL OpenAPI v2** (JSON přes HTTP).
-Klíč k API se **nikdy nedává do frontendu** — volání jde přes serverless
-proxy na Vercelu, která klíč drží na serveru a odpověď mapuje na formát,
-který web renderuje.
+Nabídka nemovitostí jde z **Poski REAL OpenAPI v2** (JSON/HTTP) přes serverless
+proxy na Vercelu. Bearer klíč se drží **jen v Environment Variables** (server-side),
+nikdy ne ve frontend kódu / v repu.
 
 ```
-prohlížeč → /api/nemovitosti (Vercel funkce, drží klíč) → Poski REAL API v2
-                                   │
-                                   └─ když není nastaveno / API selže → data/nemovitosti.json (fallback)
+prohlížeč → /api/nemovitosti (Vercel funkce, drží klíč) → GET /api/v2/listings/?filter[status][eq]=active
+                                   └─ když klíč chybí / API selže → data/nemovitosti.json (fallback)
 ```
 
-Soubory:
-- `api/nemovitosti.js` — proxy + mapování polí (jediné místo k ladění)
-- `js/listings.js` — frontend; volá `/api/nemovitosti`, fallback `data/nemovitosti.json`
+- `api/nemovitosti.js` — proxy: stránkuje výpis, mapuje pole na interní model, vrací `{items}`
+- `js/listings.js` — frontend: volá `/api/nemovitosti`, fallback na `data/nemovitosti.json`; filtry krajů/typů se staví z dat; fotky z `publicUrl`
 - `data/nemovitosti.json` — ukázková data / záloha
 
-## Krok 1 — objednat API u Poski REAL
-Napojení Poski REAL API v2 je placené (zaváděcí cena **350 Kč/měsíc**).
-Od Poski si vyžádej: **základ URL (base) API v2**, **API klíč** a
-**dokumentaci** (přesné cesty, způsob autentizace a názvy polí v odpovědi).
+Endpoint i mapování jsou **ověřené proti živému API** (účet okrealestate, 141 aktivních nabídek).
 
-## Krok 2 — vyplnit Environment Variables na Vercelu
-Vercel → Project `fintrust-reality` → **Settings → Environment Variables**
-(prostředí Production i Preview), pak **Redeploy**:
+## Nastavení klíče na Vercelu (dělá klient — klíč nepatří do repa)
+Vercel → Project `fintrust-reality` → **Settings → Environment Variables** → **Add**:
 
-| Proměnná | Povinné | Popis |
+| Proměnná | Hodnota | Prostředí |
 |---|---|---|
-| `POSKI_API_BASE` | ano | základ URL API v2, např. `https://<ucet>.poskireal.cz/api/v2` |
-| `POSKI_API_KEY` | ano | přístupový klíč / token |
-| `POSKI_AUTH` | ne | `bearer` (výchozí) \| `header` \| `query` |
-| `POSKI_AUTH_NAME` | ne | název hlavičky/parametru pro klíč u `header`/`query` (např. `X-Api-Key`, `apikey`) |
-| `POSKI_LIST_PATH` | ne | cesta k výpisu nabídek, výchozí `/offers` |
+| `POSKI_API_KEY` | Bearer klíč `prat_…` od Poski REAL | Production + Preview |
 
-Bez těchto proměnných web běží dál na ukázkových datech (nic nespadne).
+Volitelně (mají rozumné defaulty, měnit jen v případě potřeby):
+- `POSKI_API_BASE` — default `https://okrealestate.poskireal.cz/api/v2`
+- `POSKI_STATUS` — default `active` (možné: incomplete, active, activeUnderContract, pending, closed, withdrawn)
 
-## Krok 3 — potvrdit názvy polí
-Proxy mapuje odpověď API na interní model v `api/nemovitosti.js`
-(funkce `mapOffer`). Ta zkouší běžné názvy polí (`title`/`name`/`nazev`,
-`price`/`cena`, `city`/`mesto`, `usableArea`/`area`/`plocha`, …). **Podle
-reálné odpovědi API** (viz dokumentace nebo jedno testovací volání) doplň
-správné názvy — je to jediné místo, kde se to ladí. Interní model, který
-web očekává:
+Po přidání proměnné → **Redeploy** (nebo počkat na další deploy).
 
-```
-id, typ (byt|dum|pozemek|komercni), nabidka (prodej|pronajem),
-nazev, dispozice, plocha (m²), cena (číslo), cenaText,
-mesto, lokalita, kraj (praha|plzen|…), stav, penb, popis,
-parametry {klíč:hodnota}, fotky [url,…], art (apartment|house|land), featured
-```
+## Jak otestovat
 
-Fotky: jakmile API vrátí URL fotek do pole `fotky`, web je automaticky
-zobrazí na kartách i v detailu (jinak drží úspornou line-art grafiku).
-
-## Krok 4 — filtry podle krajů (volitelné)
-Filtry na `nemovitosti.html` mají dnes `Praha` a `Plzeň`. Pokud budou
-nabídky i z jiných krajů, přidej odpovídající „chip" (`data-value` = slug
-z `regionSlug()`, např. `stredocesky`).
-
-## Ověření po nasazení
+**1) Že klíč a endpoint fungují (přímo API):**
 ```bash
-curl -s https://www.fintrust-reality.cz/api/nemovitosti | head -c 400
+curl -s -H "Authorization: Bearer <KLÍČ>" \
+  "https://okrealestate.poskireal.cz/api/v2/listings/?filter[status][eq]=active&perPage=1" \
+  | head -c 300
 ```
-`"configured": true` a `"source": "poski-real-api-v2"` = jede ostré API.
-`"source": "mock …"` = ještě běží fallback (chybí ENV nebo API vrátilo chybu — v poli `error` je důvod).
+Očekávej `{"items":[…],"pagination":{…,"total":141,…}}`.
 
-> Staré XML metody Poski (XML, XML‑FTP, XML‑RPC) končí **koncem roku 2027** —
-> proto rovnou OpenAPI v2.
+**2) Že proxy na webu vrací ostrá data (po nastavení ENV + redeploy):**
+```bash
+curl -s "https://www.fintrust-reality.cz/api/nemovitosti" | head -c 200
+```
+- `"source":"poski-real-api-v2","configured":true,"count":141` → jede ostré API ✅
+- `"source":"mock (POSKI_API_KEY not set)"` → ještě chybí ENV (nebo nebyl redeploy)
+- `"source":"mock (API error fallback)","error":"…"` → API vrátilo chybu (důvod v `error`)
+
+**3) Vizuálně:** otevři `https://www.fintrust-reality.cz/nemovitosti` — reálné nabídky,
+filtr „Lokalita" a „Typ" se samy poskládají z dat. Detail: klik na kartu.
+
+## Poznámky
+- **Fotky:** jakmile budou u nabídek nahrané a `isPublishedOnWeb`, zobrazí se z `publicUrl`
+  automaticky (na kartách i v detailu); do té doby úsporná line-art grafika.
+- **Rozsah nabídek:** proxy vrací všechny `active` nabídky účtu (aktuálně celá ČR + Rakousko).
+  Když je chceš omezit jen na některé kraje, řekni — přidá se filtr na straně proxy.
+- **Lokální náhled** (`python3 -m http.server`) serverless funkci nespustí → načte se
+  fallback `data/nemovitosti.json`. Pro test proxy lokálně použij `vercel dev` s `.env`
+  (soubor `.env` je v `.gitignore`, do repa se nedostane).
+- Staré XML metody Poski (XML, XML‑FTP, XML‑RPC) končí **koncem roku 2027** → proto OpenAPI v2.
