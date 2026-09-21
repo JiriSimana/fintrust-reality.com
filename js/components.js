@@ -41,7 +41,7 @@
         '<a href="index.html" class="nav__logo" data-cursor aria-label="FinTrust Reality — domů">' + LOGO + "</a>" +
         '<nav class="nav__links" aria-label="Hlavní navigace">' + navLinks(active, false) + "</nav>" +
         '<div class="nav__right">' +
-          '<span class="nav__loc">Plzeň · Praha</span>' +
+          '<span class="nav__loc">Celá ČR</span>' +
           '<a href="prodej.html" class="btn btn--gold btn--sm" data-cursor data-magnetic>Chci znát cenu</a>' +
           '<button class="nav__burger" id="burger" aria-label="Menu" aria-expanded="false"><span></span><span></span></button>' +
         "</div>" +
@@ -50,7 +50,7 @@
         '<nav class="menu__links">' + navLinks(active, true) + "</nav>" +
         '<div class="menu__foot">' +
           '<a href="prodej.html" class="btn btn--gold">Chci znát cenu nemovitosti</a>' +
-          "<p>Plzeň · Praha — součást skupiny <a href=\"https://fintg.cz\" target=\"_blank\" rel=\"noopener\">FinTrust</a></p>" +
+          "<p>Celá ČR — součást skupiny <a href=\"https://fintg.cz\" target=\"_blank\" rel=\"noopener\">FinTrust</a></p>" +
         "</div>" +
       "</div>";
   }
