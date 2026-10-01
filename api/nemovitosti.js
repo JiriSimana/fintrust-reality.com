@@ -26,6 +26,10 @@ var DEFAULT_BASE = "https://okrealestate.poskireal.cz/api/v2";
 var PER_PAGE = 100;
 var MAX_ITEMS = 300;
 var CARD_SIZE = "medium"; // fotka na kartě
+// Klíč od Poski vidí celou kancelář OK Real Estate — omezujeme na našeho
+// makléře (FinTrust Reality = makléř 320). Přepsatelné přes ENV POSKI_AGENT_ID
+// (číslo = jiný makléř; "all" = bez omezení, celá kancelář).
+var DEFAULT_AGENT = "320";
 
 /* ---------- pomocné ---------- */
 function num(v) {
@@ -185,12 +189,14 @@ async function fetchJSON(url, key) {
   return r.json();
 }
 
-async function fetchAllListings(base, key, status) {
+async function fetchAllListings(base, key, status, agent) {
   var out = [];
   var page = 1;
+  var agentFilter = (agent && /^[0-9]+$/.test(agent))
+    ? "&filter%5BprimaryAgentId%5D%5Beq%5D=" + encodeURIComponent(agent) : "";
   while (out.length < MAX_ITEMS) {
     var url = base.replace(/\/+$/, "") + "/listings/?filter%5Bstatus%5D%5Beq%5D=" +
-      encodeURIComponent(status) + "&fields=photos&page=" + page + "&perPage=" + PER_PAGE;
+      encodeURIComponent(status) + agentFilter + "&fields=photos&page=" + page + "&perPage=" + PER_PAGE;
     var j = await fetchJSON(url, key);
     var items = (j && j.items) || [];
     out = out.concat(items);
@@ -216,6 +222,11 @@ module.exports = async function (req, res) {
   var status = process.env.POSKI_STATUS || "active";
   if (key) key = key.trim().replace(/^Bearer\s+/i, "").trim();
 
+  // omezení na našeho makléře (default 320); "all" = bez omezení
+  var agent = process.env.POSKI_AGENT_ID;
+  if (agent == null || agent === "") agent = DEFAULT_AGENT;
+  if (String(agent).toLowerCase() === "all") agent = "";
+
   var id = req.query && req.query.id ? String(req.query.id) : "";
 
   if (!key) {
@@ -229,12 +240,18 @@ module.exports = async function (req, res) {
   try {
     if (id) {
       var one = await fetchOne(base, key, id);
-      var item = mapOffer(one && one.id ? one : (one && one.items && one.items[0]), true);
+      var raw1 = one && one.id ? one : (one && one.items && one.items[0]);
+      // bezpečnostní pojistka: detail jen pro nabídku našeho makléře
+      if (raw1 && agent && /^[0-9]+$/.test(agent) &&
+          raw1.primaryAgent && String(raw1.primaryAgent.id) !== String(agent)) {
+        raw1 = null;
+      }
+      var item = mapOffer(raw1, true);
       res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
       res.status(200).json({ source: "poski-real-api-v2", configured: true, items: item ? [item] : [] });
       return;
     }
-    var raw = await fetchAllListings(base, key, status);
+    var raw = await fetchAllListings(base, key, status, agent);
     var items = raw.map(function (it) { return mapOffer(it, false); }).filter(function (x) { return x && x.id; });
     res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
     res.status(200).json({
