@@ -15,6 +15,7 @@
   // key must match <body data-page="…">
   var LINKS = [
     { key: "nemovitosti", href: "nemovitosti.html", label: "Nemovitosti" },
+    { key: "zahranici",   href: "zahranici.html",   label: "Zahraničí" },
     { key: "sluzby",      href: "sluzby.html",       label: "Služby" },
     { key: "sprava",      href: "sprava-nemovitosti.html", label: "Správa &amp; pronájem" },
     // DOČASNĚ SKRYTO — „O nás" (zatím neprezentujeme žádného makléře).
@@ -67,6 +68,7 @@
           '<nav class="footer__nav" aria-label="Patička">' +
             '<div><h4>Web</h4>' +
               '<a href="nemovitosti.html" data-cursor>Nemovitosti</a>' +
+              '<a href="zahranici.html" data-cursor>Zahraniční nemovitosti</a>' +
               '<a href="sluzby.html" data-cursor>Služby</a>' +
               '<a href="sprava-nemovitosti.html" data-cursor>Správa &amp; pronájem</a>' +
               '<a href="prodej.html" data-cursor>Chci prodat</a>' +
