@@ -64,6 +64,10 @@
           '<div class="footer__brand">' +
             '<a href="index.html" class="logo logo--footer" data-logo data-cursor>' + LOGO + "</a>" +
             '<p class="footer__tag">Váš lidský partner<br>ve světě nemovitostí.</p>' +
+            '<div class="footer__member">' +
+              '<span class="footer__member-label">Člen skupiny</span>' +
+              '<img src="assets/ok-real-estate-white.svg" alt="OK Real Estate — člen OK Holding" width="172" height="40" loading="lazy" decoding="async" />' +
+            "</div>" +
           "</div>" +
           '<nav class="footer__nav" aria-label="Patička">' +
             '<div><h4>Web</h4>' +
